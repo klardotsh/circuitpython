@@ -24,6 +24,8 @@
  * THE SOFTWARE.
  */
 
+#pragma GCC diagnostic ignored "-Wcast-align"
+
 #include <stdio.h>
 #include <string.h>
 
@@ -32,17 +34,27 @@
 #include "py/mperrno.h"
 
 #include "supervisor/shared/translate.h"
+#include "extmod/moduzlib.h"
 
 #if MICROPY_PY_UZLIB
 
 #define UZLIB_CONF_PARANOID_CHECKS (1)
 #include "../../lib/uzlib/src/tinf.h"
+#include "../../lib/uzlib/src/tinfgzip.c"
 
 #if 0 // print debugging info
 #define DEBUG_printf DEBUG_printf
 #else // don't print debugging info
 #define DEBUG_printf(...) (void)0
 #endif
+
+static void check_not_unicode(const mp_obj_t arg) {
+#if MICROPY_CPYTHON_COMPAT
+    if (MP_OBJ_IS_STR(arg)) {
+        mp_raise_TypeError(translate("a bytes-like object is required"));
+    }
+#endif
+}
 
 typedef struct _mp_obj_decompio_t {
     mp_obj_base_t base;
@@ -145,33 +157,30 @@ STATIC const mp_obj_type_t decompio_type = {
     .locals_dict = (void*)&decompio_locals_dict,
 };
 
-STATIC mp_obj_t mod_uzlib_decompress(size_t n_args, const mp_obj_t *args) {
-    mp_obj_t data = args[0];
-    mp_buffer_info_t bufinfo;
-    mp_get_buffer_raise(data, &bufinfo, MP_BUFFER_READ);
-
+mp_obj_t mod_uzlib_decompress_internal(mp_buffer_info_t *bufinfo, uint header_mode) {
     TINF_DATA *decomp = m_new_obj(TINF_DATA);
     memset(decomp, 0, sizeof(*decomp));
     DEBUG_printf("sizeof(TINF_DATA)=" UINT_FMT "\n", sizeof(*decomp));
     uzlib_uncompress_init(decomp, NULL, 0);
-    mp_uint_t dest_buf_size = (bufinfo.len + 15) & ~15;
+    mp_uint_t dest_buf_size = (bufinfo->len + 15) & ~15;
     byte *dest_buf = m_new(byte, dest_buf_size);
 
     decomp->dest = dest_buf;
     decomp->dest_limit = dest_buf+dest_buf_size;
-    DEBUG_printf("uzlib: Initial out buffer: " UINT_FMT " bytes\n", decomp->destSize);
-    decomp->source = bufinfo.buf;
-    decomp->source_limit = (unsigned char *)bufinfo.buf + bufinfo.len;
+    decomp->source = bufinfo->buf;
+    decomp->source_limit = (unsigned char *)bufinfo->buf + bufinfo->len;
     int st;
-    bool is_zlib = true;
 
-    if (n_args > 1 && MP_OBJ_SMALL_INT_VALUE(args[1]) < 0) {
-        is_zlib = false;
-    }
-
-    if (is_zlib) {
+    if (header_mode == UZLIB_HEADER_ZLIB) {
         st = uzlib_zlib_parse_header(decomp);
         if (st < 0) {
+            goto error;
+        }
+    }
+
+    if (header_mode == UZLIB_HEADER_GZIP) {
+        st = uzlib_gzip_parse_header(decomp);
+        if (st != TINF_OK) {
             goto error;
         }
     }
@@ -201,11 +210,36 @@ STATIC mp_obj_t mod_uzlib_decompress(size_t n_args, const mp_obj_t *args) {
 error:
         nlr_raise(mp_obj_new_exception_arg1(&mp_type_ValueError, MP_OBJ_NEW_SMALL_INT(st)));
 }
+
+STATIC mp_obj_t mod_uzlib_decompress(size_t n_args, const mp_obj_t *args) {
+    mp_obj_t data = args[0];
+    mp_buffer_info_t bufinfo;
+    mp_get_buffer_raise(data, &bufinfo, MP_BUFFER_READ);
+
+    uint header_mode = UZLIB_HEADER_ZLIB;
+
+    if (n_args > 1 && MP_OBJ_SMALL_INT_VALUE(args[1]) < 0) {
+        header_mode = UZLIB_HEADER_NONE;
+    }
+
+    return mod_uzlib_decompress_internal(&bufinfo, header_mode);
+}
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mod_uzlib_decompress_obj, 1, 3, mod_uzlib_decompress);
+
+mp_obj_t mod_uzlib_crc32(size_t n_args, const mp_obj_t *args) {
+    mp_buffer_info_t bufinfo;
+    check_not_unicode(args[0]);
+    mp_get_buffer_raise(args[0], &bufinfo, MP_BUFFER_READ);
+    uint32_t crc = (n_args > 1) ? mp_obj_get_int_truncated(args[1]) : 0;
+    crc = uzlib_crc32(bufinfo.buf, bufinfo.len, crc ^ 0xffffffff);
+    return mp_obj_new_int_from_uint(crc ^ 0xffffffff);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mod_uzlib_crc32_obj, 1, 2, mod_uzlib_crc32);
 
 STATIC const mp_rom_map_elem_t mp_module_uzlib_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_uzlib) },
     { MP_ROM_QSTR(MP_QSTR_decompress), MP_ROM_PTR(&mod_uzlib_decompress_obj) },
+    { MP_ROM_QSTR(MP_QSTR_crc32), MP_ROM_PTR(&mod_uzlib_crc32_obj) },
     { MP_ROM_QSTR(MP_QSTR_DecompIO), MP_ROM_PTR(&decompio_type) },
 };
 
@@ -222,7 +256,6 @@ const mp_obj_module_t mp_module_uzlib = {
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #include "../../lib/uzlib/src/tinflate.c"
 #include "../../lib/uzlib/src/tinfzlib.c"
-#include "../../lib/uzlib/src/tinfgzip.c"
 #include "../../lib/uzlib/src/adler32.c"
 #include "../../lib/uzlib/src/crc32.c"
 
