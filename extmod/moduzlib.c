@@ -24,6 +24,8 @@
  * THE SOFTWARE.
  */
 
+#pragma GCC diagnostic ignored "-Wcast-align"
+
 #include <stdio.h>
 #include <string.h>
 
@@ -43,6 +45,14 @@
 #else // don't print debugging info
 #define DEBUG_printf(...) (void)0
 #endif
+
+static void check_not_unicode(const mp_obj_t arg) {
+#if MICROPY_CPYTHON_COMPAT
+    if (MP_OBJ_IS_STR(arg)) {
+        mp_raise_TypeError(translate("a bytes-like object is required"));
+    }
+#endif
+}
 
 typedef struct _mp_obj_decompio_t {
     mp_obj_base_t base;
@@ -203,9 +213,20 @@ error:
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mod_uzlib_decompress_obj, 1, 3, mod_uzlib_decompress);
 
+mp_obj_t mod_uzlib_crc32(size_t n_args, const mp_obj_t *args) {
+    mp_buffer_info_t bufinfo;
+    check_not_unicode(args[0]);
+    mp_get_buffer_raise(args[0], &bufinfo, MP_BUFFER_READ);
+    uint32_t crc = (n_args > 1) ? mp_obj_get_int_truncated(args[1]) : 0;
+    crc = uzlib_crc32(bufinfo.buf, bufinfo.len, crc ^ 0xffffffff);
+    return mp_obj_new_int_from_uint(crc ^ 0xffffffff);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mod_uzlib_crc32_obj, 1, 2, mod_uzlib_crc32);
+
 STATIC const mp_rom_map_elem_t mp_module_uzlib_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_uzlib) },
     { MP_ROM_QSTR(MP_QSTR_decompress), MP_ROM_PTR(&mod_uzlib_decompress_obj) },
+    { MP_ROM_QSTR(MP_QSTR_crc32), MP_ROM_PTR(&mod_uzlib_crc32_obj) },
     { MP_ROM_QSTR(MP_QSTR_DecompIO), MP_ROM_PTR(&decompio_type) },
 };
 
