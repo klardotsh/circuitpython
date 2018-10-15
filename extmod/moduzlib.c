@@ -34,6 +34,7 @@
 #include "py/mperrno.h"
 
 #include "supervisor/shared/translate.h"
+#include "extmod/moduzlib.h"
 
 #if MICROPY_PY_UZLIB
 
@@ -155,29 +156,19 @@ STATIC const mp_obj_type_t decompio_type = {
     .locals_dict = (void*)&decompio_locals_dict,
 };
 
-STATIC mp_obj_t mod_uzlib_decompress(size_t n_args, const mp_obj_t *args) {
-    mp_obj_t data = args[0];
-    mp_buffer_info_t bufinfo;
-    mp_get_buffer_raise(data, &bufinfo, MP_BUFFER_READ);
-
+mp_obj_t mod_uzlib_decompress_internal(mp_buffer_info_t *bufinfo, bool is_zlib) {
     TINF_DATA *decomp = m_new_obj(TINF_DATA);
     memset(decomp, 0, sizeof(*decomp));
     DEBUG_printf("sizeof(TINF_DATA)=" UINT_FMT "\n", sizeof(*decomp));
     uzlib_uncompress_init(decomp, NULL, 0);
-    mp_uint_t dest_buf_size = (bufinfo.len + 15) & ~15;
+    mp_uint_t dest_buf_size = (bufinfo->len + 15) & ~15;
     byte *dest_buf = m_new(byte, dest_buf_size);
 
     decomp->dest = dest_buf;
     decomp->dest_limit = dest_buf+dest_buf_size;
-    DEBUG_printf("uzlib: Initial out buffer: " UINT_FMT " bytes\n", decomp->destSize);
-    decomp->source = bufinfo.buf;
-    decomp->source_limit = (unsigned char *)bufinfo.buf + bufinfo.len;
+    decomp->source = bufinfo->buf;
+    decomp->source_limit = (unsigned char *)bufinfo->buf + bufinfo->len;
     int st;
-    bool is_zlib = true;
-
-    if (n_args > 1 && MP_OBJ_SMALL_INT_VALUE(args[1]) < 0) {
-        is_zlib = false;
-    }
 
     if (is_zlib) {
         st = uzlib_zlib_parse_header(decomp);
@@ -210,6 +201,20 @@ STATIC mp_obj_t mod_uzlib_decompress(size_t n_args, const mp_obj_t *args) {
 
 error:
         nlr_raise(mp_obj_new_exception_arg1(&mp_type_ValueError, MP_OBJ_NEW_SMALL_INT(st)));
+}
+
+STATIC mp_obj_t mod_uzlib_decompress(size_t n_args, const mp_obj_t *args) {
+    mp_obj_t data = args[0];
+    mp_buffer_info_t bufinfo;
+    mp_get_buffer_raise(data, &bufinfo, MP_BUFFER_READ);
+
+    bool is_zlib = true;
+
+    if (n_args > 1 && MP_OBJ_SMALL_INT_VALUE(args[1]) < 0) {
+        is_zlib = false;
+    }
+
+    return mod_uzlib_decompress_internal(&bufinfo, is_zlib);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mod_uzlib_decompress_obj, 1, 3, mod_uzlib_decompress);
 

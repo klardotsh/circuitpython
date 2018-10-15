@@ -23,7 +23,7 @@
 // Turn off for consistency
 #define MICROPY_CPYTHON_COMPAT      (0)
 #define MICROPY_MEM_STATS           (0)
-#define MICROPY_DEBUG_PRINTERS      (0)
+#define MICROPY_DEBUG_PRINTERS      (1)
 #define MICROPY_ENABLE_GC           (1)
 #define MICROPY_GC_ALLOC_THRESHOLD  (0)
 #define MICROPY_REPL_EVENT_DRIVEN   (0)
@@ -67,6 +67,7 @@
 #define MICROPY_FLOAT_HIGH_QUALITY_HASH (1)
 #define MICROPY_STREAMS_NON_BLOCK   (1)
 #define MICROPY_PY_UZLIB            (1)
+#define MICROPY_PY_GZIP             (1)
 
 // fatfs configuration used in ffconf.h
 #define MICROPY_FATFS_ENABLE_LFN       (1)

@@ -1156,6 +1156,14 @@ typedef double mp_float_t;
 #define MICROPY_PY_UZLIB (0)
 #endif
 
+#ifndef MICROPY_PY_GZIP
+#define MICROPY_PY_GZIP (0)
+#endif
+
+#if MICROPY_PY_GZIP && !MICROPY_PY_UZLIB
+#error gzip depends on uzlib support
+#endif
+
 #ifndef MICROPY_PY_UJSON
 #define MICROPY_PY_UJSON (0)
 #endif

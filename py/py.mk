@@ -228,6 +228,7 @@ PY_EXTMOD_O_BASENAME = \
 	extmod/modujson.o \
 	extmod/modure.o \
 	extmod/moduzlib.o \
+	extmod/modgzip.o \
 	extmod/moduheapq.o \
 	extmod/modutimeq.o \
 	extmod/moduhashlib.o \

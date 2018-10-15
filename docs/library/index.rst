@@ -21,15 +21,15 @@ standard Python library.
    You may need to change your code later if you rely
    on any non-standard functionality they currently provide.
 
-CircuitPython's goal long-term goalis that code written in CircuitPython
+CircuitPython's goal long-term goal is that code written in CircuitPython
 using Python standard libraries will be runnable on CPython without changes.
 
 Some libraries below are not enabled on CircuitPython builds with
 limited flash memory, usually on non-Express builds:
-``uerrno``, ``ure``.
+``uerrno``, ``ure``, ``uzlib``.
 
 Some libraries are not currently enabled in any CircuitPython build, but may be in the future:
-``uio``, ``ujson``, ``uzlib``.
+``uio``, ``ujson``
 
 Some libraries are only enabled only WiFi-capable ports (ESP8266, nRF)
 because they are typically used for network software:
@@ -45,6 +45,7 @@ Not all of these are enabled on all WiFi-capable ports.
    binascii.rst
    collections.rst
    gc.rst
+   gzip.rst
    hashlib.rst
    sys.rst
    uerrno.rst
