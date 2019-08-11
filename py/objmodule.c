@@ -195,12 +195,6 @@ STATIC const mp_rom_map_elem_t mp_builtin_module_table[] = {
 #if MICROPY_PY_UCTYPES
     { MP_ROM_QSTR(MP_QSTR_uctypes), MP_ROM_PTR(&mp_module_uctypes) },
 #endif
-#if MICROPY_PY_UZLIB
-    { MP_ROM_QSTR(MP_QSTR_uzlib), MP_ROM_PTR(&mp_module_uzlib) },
-    #if MICROPY_PY_GZIP
-    { MP_ROM_QSTR(MP_QSTR_gzip), MP_ROM_PTR(&mp_module_gzip) },
-    #endif // MICROPY_PY_GZIP
-#endif // MICROPY_PY_UZLIB
 #if MICROPY_PY_UJSON
 #if CIRCUITPY
 // CircuitPython: Defined in MICROPY_PORT_BUILTIN_MODULES, so not defined here.

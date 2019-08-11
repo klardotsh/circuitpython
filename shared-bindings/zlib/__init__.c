@@ -157,7 +157,7 @@ STATIC const mp_obj_type_t decompio_type = {
     .locals_dict = (void*)&decompio_locals_dict,
 };
 
-mp_obj_t mod_uzlib_decompress_internal(mp_buffer_info_t *bufinfo, uint header_mode) {
+mp_obj_t mod_zlib_decompress_internal(mp_buffer_info_t *bufinfo, uint header_mode) {
     TINF_DATA *decomp = m_new_obj(TINF_DATA);
     memset(decomp, 0, sizeof(*decomp));
     DEBUG_printf("sizeof(TINF_DATA)=" UINT_FMT "\n", sizeof(*decomp));
@@ -201,7 +201,7 @@ mp_obj_t mod_uzlib_decompress_internal(mp_buffer_info_t *bufinfo, uint header_mo
     }
 
     mp_uint_t final_sz = decomp->dest - dest_buf;
-    DEBUG_printf("uzlib: Resizing from " UINT_FMT " to final size: " UINT_FMT " bytes\n", dest_buf_size, final_sz);
+    DEBUG_printf("zlib: Resizing from " UINT_FMT " to final size: " UINT_FMT " bytes\n", dest_buf_size, final_sz);
     dest_buf = (byte*)m_renew(byte, dest_buf, dest_buf_size, final_sz);
     mp_obj_t res = mp_obj_new_bytearray_by_ref(final_sz, dest_buf);
     m_del_obj(TINF_DATA, decomp);
@@ -211,7 +211,7 @@ error:
         nlr_raise(mp_obj_new_exception_arg1(&mp_type_ValueError, MP_OBJ_NEW_SMALL_INT(st)));
 }
 
-STATIC mp_obj_t mod_uzlib_decompress(size_t n_args, const mp_obj_t *args) {
+STATIC mp_obj_t mod_zlib_decompress(size_t n_args, const mp_obj_t *args) {
     mp_obj_t data = args[0];
     mp_buffer_info_t bufinfo;
     mp_get_buffer_raise(data, &bufinfo, MP_BUFFER_READ);
@@ -222,11 +222,11 @@ STATIC mp_obj_t mod_uzlib_decompress(size_t n_args, const mp_obj_t *args) {
         header_mode = UZLIB_HEADER_NONE;
     }
 
-    return mod_uzlib_decompress_internal(&bufinfo, header_mode);
+    return mod_zlib_decompress_internal(&bufinfo, header_mode);
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mod_uzlib_decompress_obj, 1, 3, mod_uzlib_decompress);
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mod_zlib_decompress_obj, 1, 3, mod_zlib_decompress);
 
-mp_obj_t mod_uzlib_crc32(size_t n_args, const mp_obj_t *args) {
+mp_obj_t mod_zlib_crc32(size_t n_args, const mp_obj_t *args) {
     mp_buffer_info_t bufinfo;
     check_not_unicode(args[0]);
     mp_get_buffer_raise(args[0], &bufinfo, MP_BUFFER_READ);
@@ -234,20 +234,20 @@ mp_obj_t mod_uzlib_crc32(size_t n_args, const mp_obj_t *args) {
     crc = uzlib_crc32(bufinfo.buf, bufinfo.len, crc ^ 0xffffffff);
     return mp_obj_new_int_from_uint(crc ^ 0xffffffff);
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mod_uzlib_crc32_obj, 1, 2, mod_uzlib_crc32);
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mod_zlib_crc32_obj, 1, 2, mod_zlib_crc32);
 
-STATIC const mp_rom_map_elem_t mp_module_uzlib_globals_table[] = {
-    { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_uzlib) },
-    { MP_ROM_QSTR(MP_QSTR_decompress), MP_ROM_PTR(&mod_uzlib_decompress_obj) },
-    { MP_ROM_QSTR(MP_QSTR_crc32), MP_ROM_PTR(&mod_uzlib_crc32_obj) },
+STATIC const mp_rom_map_elem_t mp_module_zlib_globals_table[] = {
+    { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_zlib) },
+    { MP_ROM_QSTR(MP_QSTR_decompress), MP_ROM_PTR(&mod_zlib_decompress_obj) },
+    { MP_ROM_QSTR(MP_QSTR_crc32), MP_ROM_PTR(&mod_zlib_crc32_obj) },
     { MP_ROM_QSTR(MP_QSTR_DecompIO), MP_ROM_PTR(&decompio_type) },
 };
 
-STATIC MP_DEFINE_CONST_DICT(mp_module_uzlib_globals, mp_module_uzlib_globals_table);
+STATIC MP_DEFINE_CONST_DICT(mp_module_zlib_globals, mp_module_zlib_globals_table);
 
-const mp_obj_module_t mp_module_uzlib = {
+const mp_obj_module_t mp_module_zlib = {
     .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&mp_module_uzlib_globals,
+    .globals = (mp_obj_dict_t*)&mp_module_zlib_globals,
 };
 
 // Source files #include'd here to make sure they're compiled in

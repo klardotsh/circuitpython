@@ -250,6 +250,7 @@ $(filter $(SRC_PATTERNS), \
 	displayio/ParallelBus.c \
 	frequencyio/__init__.c \
 	frequencyio/FrequencyIn.c \
+	gzip/__init__c. \
 	i2cslave/I2CSlave.c \
 	i2cslave/__init__.c \
 	microcontroller/Pin.c \
@@ -274,6 +275,7 @@ $(filter $(SRC_PATTERNS), \
 	time/__init__.c \
 	touchio/TouchIn.c \
 	touchio/__init__.c \
+	zlib/__init__.c \
 )
 
 # These don't have corresponding files in each port but are still located in
